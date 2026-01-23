@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Fraud Detector</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="title-container">
+                <h1 class="main-title">Job Post Authenticator</h1>
+                <p class="subtitle">
+                    <span class="status-indicator status-active"></span>
+                    AI-Powered Fraud Detection System
+                </p>
+            </div>
+        </header>
+        <main class="main-content">
+            <form action="/predict" method="post" class="analysis-form" id="analysisForm">
+                <div class="textarea-container">
+                    <div class="textarea-label">Job Description Input</div>
+                    <textarea name="combined_text" placeholder="Paste job description here... Include title, company, location, description, requirements, and application instructions for the most accurate analysis." required></textarea>
+                </div>
+                <button type="submit" class="cta-button">
+                    <i class="fas fa-search"></i>
+                    Analyze Content
+                </button>
+                <div class="loader" id="loader"></div>
+            </form>
+            
+            <div id="resultPlaceholder">
+                {% if prediction %}
+                <div class="result-container">
+                    {% if "legitimate" in prediction.lower() %}
+                    <div class="result-card legitimate">
+                        <p class="result-text">
+                            <i class="fas fa-shield-check result-icon"></i>
+                            {{ prediction }}
+                        </p>
+                    </div>
+                    {% elif "fraudulent" in prediction.lower() %}
+                    <div class="result-card fraudulent">
+                        <p class="result-text">
+                            <i class="fas fa-exclamation-triangle result-icon"></i>
+                            {{ prediction }}
+                        </p>
+                    </div>
+                    {% else %}
+                    <div class="result-card unknown">
+                        <p class="result-text">
+                            <i class="fas fa-question-circle result-icon"></i>
+                            {{ prediction }}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="examples-grid">
+                <div class="example-card legitimate">
+                    <h3><i class="fas fa-check-circle"></i> Legitimate Example</h3>
+                    <textarea id="legit-job" readonly>
+Title: Software Engineer
+Company: Goldman Sachs
+Location: Bengaluru, India
+Description: Develop scalable software, architect low-latency infrastructure, and leverage machine learning to turn data into action.
+Requirements:
+- Bachelor's in Computer Science or related field
+- Strong fundamentals in distributed systems and databases
+- Proficiency in algorithm design and analysis
+- Experience with programming languages and runtime systems
+How to Apply: Visit the Goldman Sachs careers page: https://www.goldmansachs.com/careers/our-firm/engineering
+                    </textarea>
+                    <button class="copy-button" data-target="legit-job">
+                        <i class="far fa-copy"></i>
+                        Copy Text
+                    </button>
+                </div>
+                <div class="example-card fraudulent">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Fraudulent Example</h3>
+                    <textarea id="fraud-job" readonly>
+Title: Junior Developer - Immediate Hiring
+Company: Future AI Solutions
+Location: Remote
+Description: Seeking enthusiastic developers to work on AI projects with international clients. No experience needed.
+Requirements:
+- No experience required; basic Python preferred
+- Must have a laptop with internet access
+How to Apply: Apply via careers@futureaisolutions.com. A refundable ₹4,999 deposit is required for training materials.
+                    </textarea>
+                    <button class="copy-button" data-target="fraud-job">
+                        <i class="far fa-copy"></i>
+                        Copy Text
+                    </button>
+                </div>
+            </div>
+        </main>
+        <footer class="footer">
+            <p>Job Fraud Detector v2.0 • Uses advanced AI algorithms to identify suspicious job postings</p>
+            <p>Note: This tool provides guidance only. Always verify job opportunities through official channels.</p>
+        </footer>
+    </div>
+
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+        const currentTheme = localStorage.getItem('theme');
+        
+        if (currentTheme === 'dark' || (!currentTheme && prefersDarkScheme.matches)) {
+            body.classList.add('dark-mode');
+            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        } else {
+            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+        }
+        
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            
+            if (body.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                localStorage.setItem('theme', 'light');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        });
+        
+        document.querySelectorAll('.copy-button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetId = e.target.getAttribute('data-target');
+                const content = document.getElementById(targetId).value;
+                navigator.clipboard.writeText(content);
+                
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                btn.classList.add('copied');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        });
+        
+        const analysisForm = document.getElementById('analysisForm');
+        const loader = document.getElementById('loader');
+        
+        analysisForm.addEventListener('submit', () => {
+            loader.style.display = 'block';
+            
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 3000);
+        });
+        
+        document.querySelectorAll('textarea').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        });
+        const analyzeBtn = document.querySelector('.cta-button');
+        setInterval(() => {
+            analyzeBtn.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+            setTimeout(() => {
+                analyzeBtn.style.boxShadow = '0 4px 6px rgba(102, 126, 234, 0.25)';
+            }, 1000);
+        }, 5000);
+    </script>
+</body>
+</html>
